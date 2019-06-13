@@ -35,10 +35,16 @@ type Manager struct {
 }
 
 // Start starts a Bivac manager which handle backups management
-func Start(buildInfo utils.BuildInfo, o orchestrators.Orchestrator, s Server, volumeFilters volume.Filters, providersFile, targetURL, logServer, agentImage string, retryCount int, refreshTime int, parallelCount int) (err error) {
+func Start(buildInfo utils.BuildInfo, o orchestrators.Orchestrator, s Server, volumeFilters volume.Filters, providersFile, targetURL, logServer, agentImage string, retryCount int, parallelCount int, refreshRate string) (err error) {
 	p, err := LoadProviders(providersFile)
 	if err != nil {
 		err = fmt.Errorf("failed to read providers file: %s", err)
+		return
+	}
+
+	refreshInterval, err := time.ParseDuration(refreshRate)
+	if err != nil {
+		err = fmt.Errorf("failed to parse refresh time: %s", err)
 		return
 	}
 
@@ -86,7 +92,7 @@ func Start(buildInfo utils.BuildInfo, o orchestrators.Orchestrator, s Server, vo
 				m.backupSlots <- v
 			}
 
-			time.Sleep(time.Duration(refreshTime) * time.Minute)
+			time.Sleep(refreshInterval)
 		}
 	}(m, volumeFilters)
 
